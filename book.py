@@ -6,8 +6,10 @@ import datetime
 from dateutil.relativedelta import relativedelta
 
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 
 basicConfig(level=DEBUG)
 logger = getLogger(__name__)
@@ -17,6 +19,11 @@ for p in ['selenium', 'webdriver_manager', 'webdriver', 'selenium.webdriver', 's
 
 URL = 'https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html'
 SEC_TO_WAIT = 10
+
+CABIN_CHOICES = [
+	3,	# 1人用　B寝台個室　シングルツイン
+	6,	# 2人用　B寝台個室　サンライズツイン
+]
 
 
 def select_pull_down_by_text(driver, id_name, text, element_pos=0, exact_match=True):
@@ -107,12 +114,14 @@ def main():
 	parser.add_argument('--departure_hour', type=int, default=22)
 	parser.add_argument('--departure_minute', type=int, default=0)
 	parser.add_argument('--train_name', type=str, default='サンライズ出雲')
+	parser.add_argument('--cabin_class', choices=[3, 6], default=3)
 
 	args = parser.parse_args()
 	userid = args.userid
 	password = args.password
 	origin = args.origin
 	destination = args.destination
+	cabin_class = 'radio-box-{}'.format(args.cabin_class)
 
 	target_date = datetime.date.today() + relativedelta(months=args.interval_month, days=args.interval_day)
 	logger.debug(f'Target date: {target_date}')
@@ -130,8 +139,7 @@ def main():
 	select_pull_down_by_text(browser, 'jsSelectTrainType', args.train_name)
 	select_pull_down_by_text(browser, 'inputDepartStName', origin)
 	select_pull_down_by_text(browser, 'inputArriveStName', destination)
-	click_radio_button(browser, 'radio-box-3')			# 1人用　B寝台個室　シングルツイン
-	# click_radio_button(browser, 'radio-box-6')			# 2人用　B寝台個室　サンライズツイン
+	click_radio_button(browser, cabin_class)
 
 	click_button(browser, 'submitButton')
 
@@ -160,7 +168,9 @@ def main():
 	while elapsed < SEC_TO_WAIT:
 		try:
 			logger.debug(browser.title)
-			click_image(browser, '次へ')		# クリックできない問題を解決する
+			iframe = browser.find_element_by_tag_name('iframe')
+			browser.switch_to.frame(iframe)
+			browser.find_element(By.XPATH, '//*[@id="submitBtn"]/p/a').click()
 
 		except Exception as e:
 			logger.error(e)
