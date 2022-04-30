@@ -18,12 +18,15 @@ for p in ['selenium', 'webdriver_manager', 'webdriver', 'selenium.webdriver', 's
 
 URL = 'https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html'
 SEC_TO_WAIT = 10
+SEC_FOR_MANUAL_OPERATION = 1800		# 条件検索以降はマニュアルで操作する
 
 CABIN_CHOICES = [
-	3,	# 1人用　B寝台個室　シングルツイン
-	6,	# 2人用　B寝台個室　サンライズツイン
+	3,	# 1人用　B寝台個室　シングルツイン、5分で禁煙完売するが、少し経つとキャンセルが出る。喫煙は15分くらい残っている
+	6,	# 2人用　B寝台個室　サンライズツイン、10時で即完売
 ]
+SEARCH_RESULT_TITLE = '経路・設備選択'
 ERROR_MESSAGE_01 = 'ご指定の条件では列車が検索できません'
+ERROR_MESSAGE_02 = 'ご指定の乗車日は、発売を開始しておりません'
 
 
 class BookResult(Enum):
@@ -115,12 +118,12 @@ def book():
 	parser.add_argument('--password', '-p', type=str, required=True)
 	parser.add_argument('--origin', '-o', type=str, default='東京')
 	parser.add_argument('--destination', '-d', type=str, default='出雲市')
-	parser.add_argument('--interval_month', type=int, default=1)
+	parser.add_argument('--interval_month', type=int, default=1)		# １ヶ月前から予約受付開始
 	parser.add_argument('--interval_day', type=int, default=0)
-	parser.add_argument('--departure_hour', type=int, default=22)
+	parser.add_argument('--departure_hour', type=int, default=20)		# 出発時刻以降だと検索結果が出ないので注意。早い分にはいつでもよさそう
 	parser.add_argument('--departure_minute', type=int, default=0)
 	parser.add_argument('--train_name', type=str, default='サンライズ出雲')
-	parser.add_argument('--cabin_class', choices=[3, 6], default=3)
+	parser.add_argument('--cabin_class', choices=[1, 3, 6], default=3)
 
 	args = parser.parse_args()
 	userid = args.userid
@@ -183,7 +186,7 @@ def book():
 			logger.error(e)
 			elapsed = (datetime.datetime.now() - start_time).seconds
 
-	# 事前予約画面になっていたら中止
+	# 経路選択画面でなければ最初からやり直し
 	start_time = datetime.datetime.now()
 	elapsed = 0
 	while elapsed < SEC_TO_WAIT:
@@ -193,11 +196,18 @@ def book():
 				# ページ遷移を待つ
 				logger.debug(browser.title)
 				continue
+			elif SEARCH_RESULT_TITLE in browser.title:
+				logger.debug(browser.title)
+				break
 			elif '事前申込' in browser.title:
 				browser.quit()
 				return BookResult.FAILURE
 			elif ERROR_MESSAGE_01 in browser.page_source:
 				logger.debug(ERROR_MESSAGE_01)
+				browser.quit()
+				return BookResult.FAILURE
+			elif ERROR_MESSAGE_02 in browser.page_source:
+				logger.debug(ERROR_MESSAGE_02)
 				browser.quit()
 				return BookResult.FAILURE
 			else:
@@ -209,10 +219,9 @@ def book():
 			logger.error(e)
 			elapsed = (datetime.datetime.now() - start_time).seconds
 
-	#
-	logger.debug('WIP')
-	logger.debug(browser.title)
-	time.sleep(30)
+	# ここからは手動で行う
+	print('Proceed to manual operation')
+	time.sleep(SEC_FOR_MANUAL_OPERATION)
 
 
 def main():
@@ -227,8 +236,6 @@ def main():
 			logger.debug('Booking result: TIMEOUT')
 		else:
 			logger.debug('Booking result: UNKNOWN')
-
-	time.sleep(30)
 
 
 if __name__ == '__main__':
