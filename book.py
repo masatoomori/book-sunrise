@@ -123,7 +123,7 @@ def book():
 	parser.add_argument('--departure_hour', type=int, default=20)		# 出発時刻以降だと検索結果が出ないので注意。早い分にはいつでもよさそう
 	parser.add_argument('--departure_minute', type=int, default=0)
 	parser.add_argument('--train_name', type=str, default='サンライズ出雲')
-	parser.add_argument('--cabin_class', choices=[1, 3, 6], default=3)
+	parser.add_argument('--cabin_class', choices=CABIN_CHOICES, default=3)
 
 	args = parser.parse_args()
 	userid = args.userid
