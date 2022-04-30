@@ -23,6 +23,7 @@ CABIN_CHOICES = [
 	3,	# 1人用　B寝台個室　シングルツイン
 	6,	# 2人用　B寝台個室　サンライズツイン
 ]
+ERROR_MESSAGE_01 = 'ご指定の条件では列車が検索できません'
 
 
 class BookResult(Enum):
@@ -195,7 +196,13 @@ def book():
 			elif '事前申込' in browser.title:
 				browser.quit()
 				return BookResult.FAILURE
+			elif ERROR_MESSAGE_01 in browser.page_source:
+				logger.debug(ERROR_MESSAGE_01)
+				browser.quit()
+				return BookResult.FAILURE
 			else:
+				logger.debug(browser.title)
+				logger.debug(browser.page_source)
 				break
 
 		except Exception as e:
