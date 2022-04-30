@@ -4,6 +4,7 @@ from logging import basicConfig, getLogger, DEBUG
 import time
 import datetime
 from dateutil.relativedelta import relativedelta
+from enum import Enum
 
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
@@ -22,6 +23,12 @@ CABIN_CHOICES = [
 	3,	# 1人用　B寝台個室　シングルツイン
 	6,	# 2人用　B寝台個室　サンライズツイン
 ]
+
+
+class BookResult(Enum):
+	SUCCESS = 0
+	FAILURE = 1
+	TIMEOUT = 2
 
 
 def select_pull_down_by_text(driver, id_name, text, element_pos=0, exact_match=True):
@@ -101,7 +108,7 @@ def click_image(driver, alt_name, element_pos=0):
 	return False
 
 
-def main():
+def book():
 	parser = argparse.ArgumentParser(add_help=True)
 	parser.add_argument('--userid', '-u', type=str, required=True)
 	parser.add_argument('--password', '-p', type=str, required=True)
@@ -166,17 +173,55 @@ def main():
 	while elapsed < SEC_TO_WAIT:
 		try:
 			logger.debug(browser.title)
-			iframe = browser.find_element_by_tag_name('iframe')
+			iframe = browser.find_element(by=By.TAG_NAME, value='iframe')
 			browser.switch_to.frame(iframe)
 			browser.find_element(By.XPATH, '//*[@id="submitBtn"]/p/a').click()
+			break
 
 		except Exception as e:
 			logger.error(e)
 			elapsed = (datetime.datetime.now() - start_time).seconds
 
+	# 事前予約画面になっていたら中止
+	start_time = datetime.datetime.now()
+	elapsed = 0
+	while elapsed < SEC_TO_WAIT:
+		try:
+			logger.debug(browser.title)
+			if browser.title == '':
+				# ページ遷移を待つ
+				logger.debug(browser.title)
+				continue
+			elif '事前申込' in browser.title:
+				browser.quit()
+				return BookResult.FAILURE
+			else:
+				break
 
+		except Exception as e:
+			logger.error(e)
+			elapsed = (datetime.datetime.now() - start_time).seconds
+
+	#
+	logger.debug('WIP')
+	logger.debug(browser.title)
 	time.sleep(30)
 
+
+def main():
+	for _ in range(10):
+		result = book()
+		if result == BookResult.SUCCESS:
+			logger.debug('Booking result: SUCCESS')
+			break
+		elif result == BookResult.FAILURE:
+			logger.debug('Booking result: FAILURE')
+		elif result == BookResult.TIMEOUT:
+			logger.debug('Booking result: TIMEOUT')
+		else:
+			logger.debug('Booking result: UNKNOWN')
+
+	time.sleep(30)
 
 
 if __name__ == '__main__':
