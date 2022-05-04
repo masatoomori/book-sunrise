@@ -21,12 +21,17 @@ SEC_TO_WAIT = 10
 SEC_FOR_MANUAL_OPERATION = 1800		# 条件検索以降はマニュアルで操作する
 
 CABIN_CHOICES = [
-	3,	# 1人用　B寝台個室　シングルツイン、5分で禁煙完売するが、少し経つとキャンセルが出る。喫煙は15分くらい残っている
-	6,	# 2人用　B寝台個室　サンライズツイン、10時で即完売
+    1, # 普通車　ノビノビ座席
+    2, # 1人用　A寝台個室　シングルデラックス
+    3, # 1人用　B寝台個室　シングルツイン。平日は5分で禁煙完売するが、少し経つとキャンセルが出る。喫煙は15分くらい残っている。金曜日、土曜日は禁煙即完売
+    4, # 1人用　B寝台個室　シングル
+    5, # 1人用　B寝台個室　ソロ
+    6, # 2人用　B寝台個室　サンライズツイン。10時で即完売
 ]
 SEARCH_RESULT_TITLE = '経路・設備選択'
 ERROR_MESSAGE_01 = 'ご指定の条件では列車が検索できません'
 ERROR_MESSAGE_02 = 'ご指定の乗車日は、発売を開始しておりません'
+ERROR_MESSAGE_03 = '処理中にエラーが発生しました'
 
 
 class BookResult(Enum):
@@ -208,6 +213,10 @@ def book():
 				return BookResult.FAILURE
 			elif ERROR_MESSAGE_02 in browser.page_source:
 				logger.debug(ERROR_MESSAGE_02)
+				browser.quit()
+				return BookResult.FAILURE
+			elif ERROR_MESSAGE_03 in browser.page_source:
+				logger.debug(ERROR_MESSAGE_03)
 				browser.quit()
 				return BookResult.FAILURE
 			else:
